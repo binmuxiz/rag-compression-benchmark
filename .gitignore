@@ -21,3 +21,5 @@ figure_env/
 
 # system
 .DS_Store
+
+.ssh/
