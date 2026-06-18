@@ -1,6 +1,6 @@
 #!/bin/bash
-SCRIPT=/app/scripts/rag_pipeline_v2.py
-CONFIG=/app/scripts/my_config.yaml
+SCRIPT=/app/scripts/run_flashrag.py
+CONFIG=/app/configs/my_config.yaml
 IDX=/app/index_output
 OUT=/app/output/full
 NPROBE=32
