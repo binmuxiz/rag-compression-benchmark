@@ -23,11 +23,11 @@ for tag in "${!INDEXES[@]}"; do
 
   if [ "$tag" == "flat" ]; then
     python $SCRIPT --config $CONFIG --index_path "${INDEXES[$tag]}" \
-      --index_tag "$tag" --llm_quant fp16 \
+      --index_tag "$tag" --llm_quant bf16 \
       --output_dir $OUT
   else
     python $SCRIPT --config $CONFIG --index_path "${INDEXES[$tag]}" \
-      --index_tag "$tag" --llm_quant fp16 --nprobe $NPROBE \
+      --index_tag "$tag" --llm_quant bf16 --nprobe $NPROBE \
       --output_dir $OUT
   fi
 done
