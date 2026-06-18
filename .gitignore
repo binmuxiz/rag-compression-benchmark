@@ -1,0 +1,23 @@
+# datasets
+dataset/
+corpus/
+
+# include indexes, models, output
+backup/
+
+# indexes
+*.faiss
+*.index
+
+# python
+__pycache__/
+*.pyc
+
+# virtualenv
+figure_env/
+
+# vscode
+.vscode/
+
+# system
+.DS_Store
