@@ -1,59 +1,137 @@
-# ── Global Paths ────────────────────────────────────────────────────────
+# ------------------------------------------------Global Paths------------------------------------------------#
+# Paths to various models
 model2path:
   e5: "intfloat/e5-base-v2"
-  llama3-8B: "/app/models/Llama-3.1-8B-Instruct"   # 방금 다운로드한 경로로 변경
+  bge: "BAAI/bge-base-en-v1.5"
+  contriever: "facebook/contriever"
+  llama2-7B-chat: "meta-llama/Llama-2-7b-chat-hf"
+  llama2-7B: "meta-llama/Llama-2-7b-hf"
+  llama2-13B: "meta-llama/Llama-2-13b-hf"
+  llama2-13B-chat: "meta-llama/Llama-2-13b-chat-hf"
+  llama3-8B: "/app/models/Llama-3.1-8B-Instruct"   
 
+
+# Pooling methods for each embedding model
 model2pooling:
   e5: "mean"
+  bge: "cls"
+  contriever: "mean"
+  jina: "mean"
+  dpr: "pooler"
 
-# index_path는 CLI --index_path 로 주입되므로 여기선 비워둠
-method2index: ~
+# Indexes path for retrieval models
+method2index:
+  e5: ~
+  bm25: ~
+  contriever: ~
+  clip:
+    "text": "path/to/text_index"
+    "image": "path/to/image_index"
 
-# ── Environment ─────────────────────────────────────────────────────────
-data_dir: "/app/dataset/"                          # pod-local 경로
-save_dir: "/app/output/"                           # pod-local 경로
+
+
+# ------------------------------------------------Environment Settings------------------------------------------------#
+# Directory paths for data and outputs
+data_dir: "/app/dataset/"
+save_dir: ~
+
 gpu_id: "0"
+dataset_name: "nq" # name of the dataset in data_dir
+split: ["test"] # dataset split to load (e.g. train,dev,test)
 
-dataset_name: "nq"
-split: ["test"]
-test_sample_num: ~          # None = full NQ test set (베이스라인은 CLI로 100 권장)
-random_sample: False
+# Sampling configurations for testing
+test_sample_num: ~              # number of samples to test (only work in dev/test split), if None, test all samples
+random_sample: False            # whether to randomly sample the test samples
+
+# Seed for reproducibility
 seed: 2024
 
-save_intermediate_data: True   # RAGAS 후처리에 필요
-save_metric_score: True
-save_note: "codesign_experiment"
-is_reasoning: False
+# Whether save intermediate data
+save_intermediate_data: True
+save_note: ~
+is_reasoning: false
 
-# ── Retrieval ────────────────────────────────────────────────────────────
-retrieval_method: "e5"
-corpus_path: "/app/indexes/wiki18_100w.jsonl"      # pod-local
-retrieval_topk: 5
-retrieval_batch_size: 256
-retrieval_use_fp16: True
-retrieval_query_max_length: 128
-faiss_gpu: False                                   # aarch64/pod 모두 faiss-cpu
-silent_retrieval: True
+# -------------------------------------------------Retrieval Settings------------------------------------------------#
+# If set the name, the model path will be find in global paths
+retrieval_method: "e5"          # name or path of the retrieval model.
+retrieval_model_path: ~         # path to the retrieval model
+index_path: ~                   # set automatically if not provided.
+multimodal_index_path_dict: ~   # use for multimodal retreiver, example format: {'text': 'path/to/text_index' or None, 'image': 'path/to/image_index' or None}
+faiss_gpu: False                # whether use gpu to hold index
+corpus_path: "/app/corpus/wiki18_100w.jsonl" # path to corpus in '.jsonl' format that store the documents
 
-save_retrieval_cache: False
-use_retrieval_cache: False
+instruction: ~                  # instruction for the retrieval model
+retrieval_topk: 5               # number of retrieved documents
+retrieval_batch_size: 256       # batch size for retrieval
+retrieval_use_fp16: True        # whether to use fp16 for retrieval model
+retrieval_query_max_length: 128 # max length of the query
+save_retrieval_cache: False     # whether to save the retrieval cache
+use_retrieval_cache: False      # whether to use the retrieval cache
+retrieval_cache_path: ~         # path to the retrieval cache
+retrieval_pooling_method: ~     # set automatically if not provided
+bm25_backend: bm25s             # pyserini, bm25s
+use_sentence_transformer: False
+silent_retrieval: True          # whether to silent the retrieval process
 
-# ── Generator ────────────────────────────────────────────────────────────
-framework: "hf"
-generator_model: "llama3-8B"
-generator_max_input_len: 1024
-generator_batch_size: 4
+seismic_query_cut: 10           # parameters for seismic. See seismic paper for full details
+seismic_heap_factor: 0.8        # parameters for seismic. See seismic paper for full details
 
-# bf16: Llama 3.1 공식 배포 dtype
-generator_params:
-  torch_dtype: "bfloat16"
 
+# -------------------------------------------------Reranker Settings------------------------------------------------#
+use_reranker: False # whether to use reranker
+rerank_model_name: ~ # same as retrieval_method
+rerank_model_path: ~ # path to reranker model, path will be automatically find in `model2path`
+rerank_pooling_method: ~
+rerank_topk: 5 # number of remain documents after reranking
+rerank_max_length: 512
+rerank_batch_size: 256 # batch size for reranker
+rerank_use_fp16: True
+
+# If you want to use multi retrievers, you can set the following parameters
+use_multi_retriever: False # whether to use multi retrievers
+multi_retriever_setting:
+  merge_method: "concat" # support 'concat', 'rrf', 'rerank'
+  topk: 5 # final remain documents, only used in 'rrf' and 'rerank' merge
+  rerank_model_name: ~
+  rerank_model_path: ~
+  retriever_list:
+    - retrieval_method: "e5"
+      retrieval_topk: 5
+      index_path: ~
+      retrieval_model_path: ~
+    - retrieval_method: "bm25"
+      retrieval_topk: 5
+      index_path: ~
+      retrieval_model_path: ~
+
+
+# -------------------------------------------------Generator Settings------------------------------------------------#
+framework: hf                            # inference frame work of LLM, supporting: 'hf','vllm','fschat', 'openai'
+generator_model: llama3-8B
+# setting for openai model, only valid in openai framework
+openai_setting:
+  api_key: ~
+  base_url: ~
+
+generator_model_path: ~
+generator_max_input_len: 4096
+generator_batch_size: 4                  # batch size for generation, invalid for vllm
 generation_params:
+  #do_sample: false
   max_tokens: 32
+  #temperature: 1.0
+  #top_p: 1.0
+use_fid: False                          # whether to use FID, only valid in encoder-decoder model
+gpu_memory_utilization: 0.85            # ratio of gpu's memory usage for generator
 
-# ── Evaluation ───────────────────────────────────────────────────────────
-# FlashRAG 기본 lexical 메트릭 (sanity check 용)
-# RAGAS는 저장된 intermediate_data 기반으로 run_ragas.py 에서 별도 실행
-metrics: ["em", "f1", "acc", "precision", "recall"]
+
+
+  # -------------------------------------------------Evaluation Settings------------------------------------------------#
+# Metrics to evaluate the result
+metrics: ["em", "f1", "acc", "precision", "recall", "input_tokens"]
+
+# Specify setting for metric, will be called within certain metrics
 metric_setting:
   retrieval_recall_topk: 5
+  tokenizer_name: "gpt-4"
+save_metric_score: True #　whether to save the metric score into txt file

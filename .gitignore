@@ -3,7 +3,11 @@ dataset/
 corpus/
 
 # include indexes, models, output
-backup/
+backup/indexes/
+backup/models/
+backup/output/full/
+backup/output/_archive/
+backup/output/stage1_indexsweep_20260624/
 
 # indexes
 *.faiss
